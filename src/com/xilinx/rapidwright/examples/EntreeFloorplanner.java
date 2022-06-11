@@ -23,4 +23,13 @@ public class EntreeFloorplanner {
         //TODO: incorporate PBlockGenerator information
     }
 
+    EntreePBlockGenerator pblock = new EntreePBlockGenerator.Builder("path")
+            .setGLOBAL_PBLOCK_OPT("aa")
+            .setASPECT_RATIO_OPT("1")
+            .setCOUNT_REQUEST_OPT("1")
+            .setOVERHEAD_RATIO_OPT("1")
+            .setSHAPES_REPORT_OPT("path")
+            .setIP_NR_INSTANCES_OPT("1")
+            .setSTARTING_X_OPT("0")
+            .setSTARTING_Y_OPT("0").build();
 }
