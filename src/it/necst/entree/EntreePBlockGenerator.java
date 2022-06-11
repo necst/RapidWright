@@ -1,4 +1,4 @@
-package com.xilinx.rapidwright.examples;
+package it.necst.entree;
 
 public class EntreePBlockGenerator {
     //TODO: pblockgenerator args

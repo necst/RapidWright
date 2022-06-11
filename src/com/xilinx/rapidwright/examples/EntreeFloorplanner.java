@@ -1,6 +1,7 @@
 package com.xilinx.rapidwright.examples;
 
 import com.xilinx.rapidwright.design.Design;
+import it.necst.entree.EntreePBlockGenerator;
 import it.necst.entree.Tree;
 
 import java.util.Arrays;
