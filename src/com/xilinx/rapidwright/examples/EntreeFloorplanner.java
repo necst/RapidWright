@@ -12,25 +12,18 @@ public class EntreeFloorplanner {
 
     public static void main(String[] args) {
         //TODO: handle command line args
-        Design design = Design.readCheckpoint(args[0], true);
-        Tree tree = new Tree(design);
-        System.out.println(tree);
+        //Design design = Design.readCheckpoint(args[0], true);
+        //Tree tree = new Tree(design);
+        //System.out.println(tree);
 
         List<Tree> trees =
                 Arrays.stream(args)
-                        .map(path -> new Tree(Design.readCheckpoint(path, true)))
+                        .map(path -> new Tree(path.replace("dcp", "_utilization_synth.rpt"), Design.readCheckpoint(path, true)))
                         .collect(Collectors.toList());
 
-        //TODO: incorporate PBlockGenerator information
+        EntreePBlockGenerator pblock = new EntreePBlockGenerator.Builder()
+                .setINPUT_LIST(trees)
+                .build();
+        
     }
-
-    EntreePBlockGenerator pblock = new EntreePBlockGenerator.Builder("path")
-            .setGLOBAL_PBLOCK_OPT("aa")
-            .setASPECT_RATIO_OPT("1")
-            .setCOUNT_REQUEST_OPT("1")
-            .setOVERHEAD_RATIO_OPT("1")
-            .setSHAPES_REPORT_OPT("path")
-            .setIP_NR_INSTANCES_OPT("1")
-            .setSTARTING_X_OPT("0")
-            .setSTARTING_Y_OPT("0").build();
 }

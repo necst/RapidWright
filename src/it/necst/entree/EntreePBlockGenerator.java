@@ -1,5 +1,7 @@
 package it.necst.entree;
 
+import java.util.List;
+
 public class EntreePBlockGenerator {
     //TODO: pblockgenerator args
     private String UTILIZATION_REPORT_OPT;
@@ -11,11 +13,12 @@ public class EntreePBlockGenerator {
     private String COUNT_REQUEST_OPT;
     private String GLOBAL_PBLOCK_OPT;
     private String IP_NR_INSTANCES_OPT;
+    private List<Tree> INPUT_LIST;
 
     private EntreePBlockGenerator() {};
 
     public static class Builder{
-        private final String UTILIZATION_REPORT_OPT;
+        private String UTILIZATION_REPORT_OPT;
         private String SHAPES_REPORT_OPT;
         private String ASPECT_RATIO_OPT;
         private String OVERHEAD_RATIO_OPT;
@@ -24,22 +27,55 @@ public class EntreePBlockGenerator {
         private String COUNT_REQUEST_OPT;
         private String GLOBAL_PBLOCK_OPT;
         private String IP_NR_INSTANCES_OPT;
+        private List<Tree> INPUT_LIST;
 
-        public String getSHAPES_REPORT_OPT() {
-            return SHAPES_REPORT_OPT;
+
+        public Builder(){
+            //Default args
+            this.UTILIZATION_REPORT_OPT = "";
+            this.SHAPES_REPORT_OPT = "";
+            this.ASPECT_RATIO_OPT = "0.016";
+            this.OVERHEAD_RATIO_OPT = "1";
         }
         public EntreePBlockGenerator build(){
             EntreePBlockGenerator entreePBlockGenerator = new EntreePBlockGenerator();
             entreePBlockGenerator.UTILIZATION_REPORT_OPT = this.UTILIZATION_REPORT_OPT;
             entreePBlockGenerator.ASPECT_RATIO_OPT = this.ASPECT_RATIO_OPT;
             entreePBlockGenerator.SHAPES_REPORT_OPT = this.SHAPES_REPORT_OPT;
-            entreePBlockGenerator.COUNT_REQUEST_OPT = this.COUNT_REQUEST_OPT;
             entreePBlockGenerator.OVERHEAD_RATIO_OPT = this.OVERHEAD_RATIO_OPT;
             return entreePBlockGenerator;
         }
+        public EntreePBlockGenerator print(){
+            EntreePBlockGenerator list = new EntreePBlockGenerator();
+            INPUT_LIST.forEach(System.out::println);
+
+            return null;
+        }
+
+        public List<Tree> getINPUT_LIST() {
+            return INPUT_LIST;
+        }
+
+        public Builder setINPUT_LIST(List<Tree> INPUT_LIST) {
+            this.INPUT_LIST = INPUT_LIST;
+            INPUT_LIST.forEach(System.out::println);
+            return this;
+        }
+
+        public Builder setUTILIZATION_REPORT_OPT(String UTILIZATION_REPORT_OPT) {
+            this.UTILIZATION_REPORT_OPT = UTILIZATION_REPORT_OPT;
+            return this;
+        }
+        public String getUTILIZATION_REPORT_OPT() {
+            return UTILIZATION_REPORT_OPT;
+        }
+
         public Builder setSHAPES_REPORT_OPT(String SHAPES_REPORT_OPT) {
             this.SHAPES_REPORT_OPT = SHAPES_REPORT_OPT;
             return this;
+        }
+        public String getSHAPES_REPORT_OPT() {
+            return SHAPES_REPORT_OPT;
         }
 
         public String getASPECT_RATIO_OPT() {
@@ -105,18 +141,7 @@ public class EntreePBlockGenerator {
             return this;
         }
 
-        public Builder(String UTILIZATION_REPORT_OPT){
-            //Default
-            this.UTILIZATION_REPORT_OPT = UTILIZATION_REPORT_OPT;
-            this.SHAPES_REPORT_OPT = "";
-            this.ASPECT_RATIO_OPT = "0.016";
-            this.OVERHEAD_RATIO_OPT = "1.0"; //no overhead
-            this.STARTING_X_OPT = "";
-            this.STARTING_Y_OPT = "";
-            this.COUNT_REQUEST_OPT = "1";
-            this.GLOBAL_PBLOCK_OPT = "";
-            this.IP_NR_INSTANCES_OPT = "";
-        }
+
 
     }
 
