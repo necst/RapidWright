@@ -25,17 +25,6 @@ public class Tree {
         }
         this.estimatorId = Integer.parseInt(matcher.group("estimator"));
         this.classId = Integer.parseInt(matcher.group("class"));
-        //this.sliceCount = ??
-
-
-
-        /*
-        this.pblock = new PBlockGenerator.Builder()//vogliamo mettere degli argomenti dentro ()??
-                .setUTILIZATION_REPORT_OPT(utilReport)//verifica che gli input siano corretti
-                .setASPECT_RATIO_OPT("")
-                .setCOUNT_REQUEST_OPT("1")
-                .build();
-                */
 
     }
 

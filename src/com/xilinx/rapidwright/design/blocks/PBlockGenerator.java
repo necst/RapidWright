@@ -1534,42 +1534,33 @@ public class PBlockGenerator {
 		String fileName = (String) opts.valueOf(UTILIZATION_REPORT_OPT);
 		String shapesReportFileName = (String) opts.valueOf(SHAPES_REPORT_OPT);
 
-		PBlockGenerator pbGen = new PBlockGenerator();
+		Builder pbGenBuilder = new Builder();
 
 		if(opts.has(ASPECT_RATIO_OPT)){
-			pbGen.ASPECT_RATIO = (float) opts.valueOf(ASPECT_RATIO_OPT);
+			pbGenBuilder.setASPECT_RATIO((float) opts.valueOf(ASPECT_RATIO_OPT));
 		}
 		if(opts.has(OVERHEAD_RATIO_OPT)){
-			pbGen.OVERHEAD_RATIO = (float) opts.valueOf(OVERHEAD_RATIO_OPT);
+			pbGenBuilder.setOVERHEAD_RATIO((float) opts.valueOf(OVERHEAD_RATIO_OPT));
 		}
 		if(opts.has(COUNT_REQUEST_OPT)){
-			pbGen.PBLOCK_COUNT = (int) opts.valueOf(COUNT_REQUEST_OPT);
+			pbGenBuilder.setCOUNT_REQUEST((int) opts.valueOf(COUNT_REQUEST_OPT));
 		}
 		// Added by Bobby 4.12.16
 		if(opts.has(STARTING_X_OPT)){
-			pbGen.STARTING_X = (int) opts.valueOf(STARTING_X_OPT);
+			pbGenBuilder.setSTARTING_X((int) opts.valueOf(STARTING_X_OPT));
 		}
 		if(opts.has(STARTING_Y_OPT)){
-			pbGen.STARTING_Y = (int) opts.valueOf(STARTING_Y_OPT);
+			pbGenBuilder.setSTARTING_Y((int) opts.valueOf(STARTING_Y_OPT));
 		}
 		if(opts.has(GLOBAL_PBLOCK_OPT)){
-			String fileNamePBlock =(String) opts.valueOf(GLOBAL_PBLOCK_OPT);
-			char firstChar = ' ';
-			if(fileNamePBlock.charAt(0)== ' ') {		// Remove spaces before the actual path if present
-				for (int i = 0; i < fileNamePBlock.length(); i++){
-					if (fileNamePBlock.charAt(i) != ' '){
-						firstChar = fileNamePBlock.charAt(i);
-						break;
-					}
-				}
-				String[] splittedFileName = fileNamePBlock.split(Character.toString(firstChar));
-				fileNamePBlock = Character.toString(firstChar).concat(splittedFileName[1]);
-			}
-			pbGen.GLOBAL_PBLOCK = fileNamePBlock;
+			pbGenBuilder.setGLOBAL_PBLOCK((String) opts.valueOf(GLOBAL_PBLOCK_OPT));
 		}
 		if(opts.has(IP_NR_INSTANCES_OPT)){
-			pbGen.IP_NR_INSTANCES = (int) opts.valueOf(IP_NR_INSTANCES_OPT);
+			pbGenBuilder.setIP_NR_INSTANCES((int) opts.valueOf(IP_NR_INSTANCES_OPT));
 		}
+
+		PBlockGenerator pbGen = pbGenBuilder.build();
+
 		HashSet<String> alreadySeen = new HashSet<String>();
 		int requested = pbGen.PBLOCK_COUNT;
 		for(String s : pbGen.generatePBlockFromReport(fileName, shapesReportFileName)){
@@ -1582,163 +1573,62 @@ public class PBlockGenerator {
 	}
 
 	public static class Builder {
-		private String UTILIZATION_REPORT;
-		private String SHAPES_REPORT;
-		private String ASPECT_RATIO;
-		private String OVERHEAD_RATIO;
-		private String STARTING_X;
-		private String STARTING_Y;
-		private String COUNT_REQUEST;
-		private String GLOBAL_PBLOCK;
-		private String IP_NR_INSTANCES;
-		private List<Tree> INPUT_LIST;
+		private final PBlockGenerator instance;
 
 		public Builder() {
-			//Default args
-			this.UTILIZATION_REPORT = "";
-			this.SHAPES_REPORT = "/home/locav/shape.txt";
-			this.ASPECT_RATIO = "0.016";
-			this.OVERHEAD_RATIO = "1";
-			this.STARTING_X = "";
-			this.STARTING_Y = "";
-			this.COUNT_REQUEST = "";
-			this.GLOBAL_PBLOCK = "";
-			this.IP_NR_INSTANCES = "";
+			this.instance = new PBlockGenerator();
 		}
 
 		public PBlockGenerator build(){
-			List<Tree> trees = getINPUT_LIST();
-			for (Tree t : trees){
-				System.out.println(t.getUtilReport());
-				String utilReport = t.getUtilReport();
-				String shapesReportFileName = (String) getSHAPES_REPORT();
-				//System.out.println("\n" + utilReport + "\t" + shapesReportFileName);
-				PBlockGenerator pbGen = new PBlockGenerator();
-				pbGen.UTILIZATION_REPORT_OPT = utilReport;
-				pbGen.ASPECT_RATIO = Float.parseFloat(this.ASPECT_RATIO);
-				pbGen.SHAPES_REPORT_OPT = this.SHAPES_REPORT;
-				pbGen.OVERHEAD_RATIO = Float.parseFloat(this.OVERHEAD_RATIO);
-
-				HashSet<String> alreadySeen = new HashSet<String>();
-				int requested = pbGen.PBLOCK_COUNT;
-				for(String s : pbGen.generatePBlockFromReport(utilReport, shapesReportFileName)){
-					if(alreadySeen.contains(s)) continue;
-					System.out.println(s);
-					alreadySeen.add(s);
-					requested--;
-					if(requested == 0) break;
-				}
-
-				if(this.GLOBAL_PBLOCK != ""){
-					String fileNamePBlock =(String) this.GLOBAL_PBLOCK;
-					char firstChar = ' ';
-					if(fileNamePBlock.charAt(0)== ' ') {		// Remove spaces before the actual path if present
-						for (int i = 0; i < fileNamePBlock.length(); i++){
-							if (fileNamePBlock.charAt(i) != ' '){
-								firstChar = fileNamePBlock.charAt(i);
-								break;
-							}
-						}
-						String[] splittedFileName = fileNamePBlock.split(Character.toString(firstChar));
-						fileNamePBlock = Character.toString(firstChar).concat(splittedFileName[1]);
-					}
-					pbGen.GLOBAL_PBLOCK = fileNamePBlock;
-				}
-
-				//return pbGen;
-
-			}
-			return null;
+			return this.instance;
 		}
 
-		public Builder setUTILIZATION_REPORT(String UTILIZATION_REPORT) {
-			this.UTILIZATION_REPORT = UTILIZATION_REPORT;
+		public Builder setASPECT_RATIO(float ASPECT_RATIO) {
+			instance.ASPECT_RATIO = ASPECT_RATIO;
 			return this;
 		}
 
-		public Builder setSHAPES_REPORT(String SHAPES_REPORT) {
-			this.SHAPES_REPORT = SHAPES_REPORT;
+		public Builder setOVERHEAD_RATIO(float OVERHEAD_RATIO) {
+			instance.OVERHEAD_RATIO = OVERHEAD_RATIO;
 			return this;
 		}
 
-		public Builder setASPECT_RATIO(String ASPECT_RATIO) {
-			this.ASPECT_RATIO = ASPECT_RATIO;
+		public Builder setSTARTING_X(int STARTING_X) {
+			instance.STARTING_X = STARTING_X;
 			return this;
 		}
 
-		public Builder setOVERHEAD_RATIO(String OVERHEAD_RATIO) {
-			this.OVERHEAD_RATIO = OVERHEAD_RATIO;
+		public Builder setSTARTING_Y(int STARTING_Y) {
+			instance.STARTING_Y = STARTING_Y;
 			return this;
 		}
 
-		public Builder setSTARTING_X(String STARTING_X) {
-			this.STARTING_X = STARTING_X;
-			return this;
-		}
-
-		public Builder setSTARTING_Y(String STARTING_Y) {
-			this.STARTING_Y = STARTING_Y;
-			return this;
-		}
-
-		public Builder setCOUNT_REQUEST(String COUNT_REQUEST) {
-			this.COUNT_REQUEST = COUNT_REQUEST;
+		public Builder setCOUNT_REQUEST(int COUNT_REQUEST) {
+			instance.PBLOCK_COUNT = COUNT_REQUEST;
 			return this;
 		}
 
 		public Builder setGLOBAL_PBLOCK(String GLOBAL_PBLOCK) {
-			this.GLOBAL_PBLOCK = GLOBAL_PBLOCK;
+			String fileNamePBlock = GLOBAL_PBLOCK;
+			char firstChar = ' ';
+			//TODO: Use better implementation for trimming whitespaces at beginning
+			if(fileNamePBlock.charAt(0)== ' ') {		// Remove spaces before the actual path if present
+				for (int i = 0; i < fileNamePBlock.length(); i++){
+					if (fileNamePBlock.charAt(i) != ' '){
+						firstChar = fileNamePBlock.charAt(i);
+						break;
+					}
+				}
+				String[] splittedFileName = fileNamePBlock.split(Character.toString(firstChar));
+				fileNamePBlock = Character.toString(firstChar).concat(splittedFileName[1]);
+			}
+			instance.GLOBAL_PBLOCK = fileNamePBlock;
 			return this;
 		}
 
-		public Builder setIP_NR_INSTANCES(String IP_NR_INSTANCES) {
-			this.IP_NR_INSTANCES = IP_NR_INSTANCES;
+		public Builder setIP_NR_INSTANCES(int IP_NR_INSTANCES) {
+			instance.IP_NR_INSTANCES = IP_NR_INSTANCES;
 			return this;
-		}
-
-		public Builder setINPUT_LIST(List<Tree> INPUT_LIST) {
-			this.INPUT_LIST = INPUT_LIST;
-			return this;
-		}
-
-		public String getUTILIZATION_REPORT() {
-			return UTILIZATION_REPORT;
-		}
-
-		public String getSHAPES_REPORT() {
-			return SHAPES_REPORT;
-		}
-
-		public String getASPECT_RATIO() {
-			return ASPECT_RATIO;
-		}
-
-		public String getOVERHEAD_RATIO() {
-			return OVERHEAD_RATIO;
-		}
-
-		public String getSTARTING_X() {
-			return STARTING_X;
-		}
-
-		public String getSTARTING_Y() {
-			return STARTING_Y;
-		}
-
-		public String getCOUNT_REQUEST() {
-			return COUNT_REQUEST;
-		}
-
-		public String getGLOBAL_PBLOCK() {
-			return GLOBAL_PBLOCK;
-		}
-
-		public String getIP_NR_INSTANCES() {
-			return IP_NR_INSTANCES;
-		}
-
-		public List<Tree> getINPUT_LIST() {
-			return INPUT_LIST;
 		}
 	}
 }
