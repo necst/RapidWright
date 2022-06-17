@@ -45,12 +45,6 @@ public class EntreePBlockGenerator {
             entreePBlockGenerator.OVERHEAD_RATIO_OPT = this.OVERHEAD_RATIO_OPT;
             return entreePBlockGenerator;
         }
-        public EntreePBlockGenerator print(){
-            EntreePBlockGenerator list = new EntreePBlockGenerator();
-            INPUT_LIST.forEach(System.out::println);
-
-            return null;
-        }
 
         public List<Tree> getINPUT_LIST() {
             return INPUT_LIST;

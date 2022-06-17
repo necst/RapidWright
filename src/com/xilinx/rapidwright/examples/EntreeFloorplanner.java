@@ -1,6 +1,7 @@
 package com.xilinx.rapidwright.examples;
 
 import com.xilinx.rapidwright.design.Design;
+import com.xilinx.rapidwright.design.blocks.PBlockGenerator;
 import it.necst.entree.EntreePBlockGenerator;
 import it.necst.entree.Tree;
 
@@ -21,9 +22,14 @@ public class EntreeFloorplanner {
                         .map(path -> new Tree(path.replace("dcp", "_utilization_synth.rpt"), Design.readCheckpoint(path, true)))
                         .collect(Collectors.toList());
 
-        EntreePBlockGenerator pblock = new EntreePBlockGenerator.Builder()
-                .setINPUT_LIST(trees)
+
+        PBlockGenerator pbgen  = new PBlockGenerator.Builder()
+                //.setINPUT_LIST()
+                .setUTILIZATION_REPORT("/home/locav/entree/entree_dfx_design/entree_dfx_design.runs/tree_rm_1_5_inst_0_tree_cl1_5_0_0_synth_1/tree_rm_1_5_inst_0_tree_cl1_5_0_0_utilization_synth.rpt")
+                //.setUTILIZATION_REPORT(trees.stream().map())
+                .setOVERHEAD_RATIO("1")
+                .setASPECT_RATIO("0.016")
                 .build();
-        
     }
+
 }
