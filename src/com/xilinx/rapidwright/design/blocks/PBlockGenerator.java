@@ -1607,44 +1607,48 @@ public class PBlockGenerator {
 		}
 
 		public PBlockGenerator build(){
-			String fileName = (String) getUTILIZATION_REPORT();
-			String shapesReportFileName = (String) getSHAPES_REPORT();
-			//System.out.println("\n" + fileName + "\t" + shapesReportFileName);
-			PBlockGenerator pbGen = new PBlockGenerator();
-			pbGen.UTILIZATION_REPORT_OPT = this.UTILIZATION_REPORT; //TODO: aggiusta _OPT
-			pbGen.ASPECT_RATIO = Float.parseFloat(this.ASPECT_RATIO);
-			pbGen.SHAPES_REPORT_OPT = this.SHAPES_REPORT;
-			pbGen.OVERHEAD_RATIO = Float.parseFloat(this.OVERHEAD_RATIO);
+			List<Tree> trees = getINPUT_LIST();
+			for (Tree t : trees){
+				System.out.println(t.getUtilReport());
+				String utilReport = t.getUtilReport();
+				String shapesReportFileName = (String) getSHAPES_REPORT();
+				//System.out.println("\n" + utilReport + "\t" + shapesReportFileName);
+				PBlockGenerator pbGen = new PBlockGenerator();
+				pbGen.UTILIZATION_REPORT_OPT = utilReport;
+				pbGen.ASPECT_RATIO = Float.parseFloat(this.ASPECT_RATIO);
+				pbGen.SHAPES_REPORT_OPT = this.SHAPES_REPORT;
+				pbGen.OVERHEAD_RATIO = Float.parseFloat(this.OVERHEAD_RATIO);
 
-
-			HashSet<String> alreadySeen = new HashSet<String>();
-			int requested = pbGen.PBLOCK_COUNT;
-			for(String s : pbGen.generatePBlockFromReport(fileName, shapesReportFileName)){
-				if(alreadySeen.contains(s)) continue;
-				System.out.println(s);
-				alreadySeen.add(s);
-				requested--;
-				if(requested == 0) break;
-			}
-
-			if(this.GLOBAL_PBLOCK != ""){
-				String fileNamePBlock =(String) this.GLOBAL_PBLOCK;
-				char firstChar = ' ';
-				if(fileNamePBlock.charAt(0)== ' ') {		// Remove spaces before the actual path if present
-					for (int i = 0; i < fileNamePBlock.length(); i++){
-						if (fileNamePBlock.charAt(i) != ' '){
-							firstChar = fileNamePBlock.charAt(i);
-							break;
-						}
-					}
-					String[] splittedFileName = fileNamePBlock.split(Character.toString(firstChar));
-					fileNamePBlock = Character.toString(firstChar).concat(splittedFileName[1]);
+				HashSet<String> alreadySeen = new HashSet<String>();
+				int requested = pbGen.PBLOCK_COUNT;
+				for(String s : pbGen.generatePBlockFromReport(utilReport, shapesReportFileName)){
+					if(alreadySeen.contains(s)) continue;
+					System.out.println(s);
+					alreadySeen.add(s);
+					requested--;
+					if(requested == 0) break;
 				}
-				pbGen.GLOBAL_PBLOCK = fileNamePBlock;
+
+				if(this.GLOBAL_PBLOCK != ""){
+					String fileNamePBlock =(String) this.GLOBAL_PBLOCK;
+					char firstChar = ' ';
+					if(fileNamePBlock.charAt(0)== ' ') {		// Remove spaces before the actual path if present
+						for (int i = 0; i < fileNamePBlock.length(); i++){
+							if (fileNamePBlock.charAt(i) != ' '){
+								firstChar = fileNamePBlock.charAt(i);
+								break;
+							}
+						}
+						String[] splittedFileName = fileNamePBlock.split(Character.toString(firstChar));
+						fileNamePBlock = Character.toString(firstChar).concat(splittedFileName[1]);
+					}
+					pbGen.GLOBAL_PBLOCK = fileNamePBlock;
+				}
+
+				//return pbGen;
+
 			}
-
-
-			return pbGen;
+			return null;
 		}
 
 		public Builder setUTILIZATION_REPORT(String UTILIZATION_REPORT) {

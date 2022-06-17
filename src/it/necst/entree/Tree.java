@@ -54,7 +54,7 @@ public class Tree {
         return this.estimatorId;
     }
 
-    public String getUtilReport(Tree tree) {
+    public String getUtilReport() {
         return utilReport;
     }
 
