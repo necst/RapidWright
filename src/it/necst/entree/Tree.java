@@ -1,5 +1,4 @@
 package it.necst.entree;
-//TODO: METTI TUTTI I CAMPI TIPO PBLOCK E NUMERO DI SLICES
 
 import com.xilinx.rapidwright.design.Design;
 
@@ -12,8 +11,8 @@ public class Tree {
     public final int estimatorId;
     public final int classId;
     public final Design design;
-    //public final int sliceCount;
-    //public final PBlockGenerator pblock;
+
+    public int sliceCount;
     public Tree(String utilReport, Design design) {
         this.utilReport = utilReport;
         this.design = design;
@@ -33,6 +32,7 @@ public class Tree {
         return "Tree{" +
                 "estimatorId=" + estimatorId +
                 ", classId=" + classId +
+                ", sliceCount=" + sliceCount +
                 '}';
     }
 
@@ -42,9 +42,14 @@ public class Tree {
     public int getEstimatorId(){
         return this.estimatorId;
     }
-
+    public int getSliceCount() {
+        return sliceCount;
+    }
     public String getUtilReport() {
         return utilReport;
+    }
+    public Design getDesign() {
+        return design;
     }
 
     @Override
