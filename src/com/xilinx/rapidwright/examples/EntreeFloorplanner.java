@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class EntreeFloorplanner {
-
     public static final Pattern pblockCoordinates = Pattern.compile("^SLICE_X(?<xa>\\d+)Y(?<ya>\\d+):SLICE_X(?<xb>\\d+)Y(?<yb>\\d+)$");
     public static int xa;
     public static int xb;
@@ -31,21 +30,16 @@ public class EntreeFloorplanner {
     static final int ROW_SIZE = 60;
     static final int GROUP_NUMBER = 3; //Apriori defined number of groups
     static final String SHAPES_REPORT_FILE_NAME = "shape.txt";
-    static final String CREATE_DCP = "dcpScript";
     static final String VIVADO_PATH = "/home/locav/Xilinx/Vivado/2021.2/bin/vivado";
-    static final String DIR = "/home/locav/dcp/";
-
-    private static void createTclScript(String scriptName, String dcpFileName, PBlock pblock){
-        String pblockName = "pblock_1";
+    static final String WORKING_DIR = "/home/locav/dcp/";//TODO: tmp director
+    private static void createTclScript(String scriptName, String dcpFileName, PBlock pblock){ //String scriptName, inputDCP, newDCP, PBLOCK
+        String pblockName = dcpFileName.substring(102,135);
         PrintWriter pw = null;
         try {
-            pw = new PrintWriter(scriptName);
+            pw = new PrintWriter(WORKING_DIR + scriptName);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             throw new RuntimeException("ERROR: Couldn't create Tcl script " + scriptName);
-        }
-        if(FileTools.isWindows()){
-            dcpFileName = dcpFileName.replace("\\", "/");
         }
         pw.println("open_checkpoint " + dcpFileName);
         pw.println("create_pblock " + pblockName);
@@ -53,17 +47,43 @@ public class EntreeFloorplanner {
         pw.println("add_cells_to_pblock "+pblockName+" -top");
         pw.println("set_property CONTAIN_ROUTING 1 [get_pblocks "+ pblockName+"]");
         pw.println("place_design");
-        pw.println("write_checkpoint -force " + DIR + "placed_pblocks.dcp");
+        pw.println("write_xdc -force " + WORKING_DIR + pblockName + ".xdc");
+        pw.println("write_checkpoint -force " + WORKING_DIR + "placed_pblocks.dcp"); //TODO: merge design
         pw.close();
     }
-    public static Job createDCP(String dcpFileName, PBlock pblock, String path){
-        String currDir = DIR;
-        Job j = JobQueue.createJob();
+    private static void linkDesignTclScript(String scriptName, String dcpFileName_1, String xdcFileName){
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(WORKING_DIR + scriptName);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            throw new RuntimeException("ERROR: Couldn't create Tcl script " + scriptName);
+        }
+        pw.println("open_checkpoint " + dcpFileName_1);
+        pw.println("read_xdc -no_add " + WORKING_DIR + xdcFileName + " -quiet_diff_pairs");
+        pw.println("write_checkpoint -force " + WORKING_DIR + dcpFileName_1);
+        pw.close();
+    }
+    public static Job createDCP(String dcpFileName, String s, String path){
+        String tclFileName = "run.tcl";
+        PBlock pblock = new PBlock(Device.getDevice(DEVICE), s);
 
+        Job j = JobQueue.createJob();
         j.setRunDir(path);
-        j.setCommand(VIVADO_PATH + " -mode batch -source " + "/home/locav/necst/RapidWright/dcpScript");
-        FileTools.makeDirs(currDir);
-        createTclScript(CREATE_DCP, dcpFileName, pblock);
+        j.setCommand(VIVADO_PATH + " -mode batch -source " + WORKING_DIR + tclFileName);
+        FileTools.makeDirs(WORKING_DIR);
+        createTclScript(tclFileName, dcpFileName, pblock);
+
+        return j;
+    }
+    public static Job createUnifiedDesign(String dcpFileName_1, String xdcFileName, String path){
+        String tclFileName = "link.tcl";
+
+        Job j = JobQueue.createJob();
+        j.setRunDir(path);
+        j.setCommand(VIVADO_PATH + " -mode batch -source " + WORKING_DIR + tclFileName);
+        FileTools.makeDirs(WORKING_DIR);
+        linkDesignTclScript(tclFileName, dcpFileName_1, xdcFileName);
 
         return j;
     }
@@ -88,13 +108,13 @@ public class EntreeFloorplanner {
 
         tempFile.deleteOnExit();
 
-        Map<Tree, String> treeMap = new HashMap<>();
-        Design d = new Design();
-
+        //LOOP #1 to generate the pblocks
         for (Tree t : trees) {
             PBlockGenerator pbGen = new PBlockGenerator.Builder()
                     .setOVERHEAD_RATIO(OVERHEAD_RATIO)
                     .setASPECT_RATIO((float) COL_SIZE / (float) ROW_SIZE)
+                    .setOVERHEAD_RATIO(1.2F) //with overhead = 1 it fails placing
+                    .setGLOBAL_PBLOCK("/home/locav/dcp/empty.dcp")//use empty dcp
                     .build();
 
             HashSet<String> alreadySeen = new HashSet<String>();
@@ -111,42 +131,75 @@ public class EntreeFloorplanner {
                 xb = Integer.parseInt(matcher.group("xb"));
                 yb = Integer.parseInt(matcher.group("yb"));
                 t.sliceCount = (yb - ya + 1) * (xb - xa + 1);
-                treeMap.put(t, s); //map trees to their temporary coordinates
-                treeMap.forEach((K,V) -> System.out.println(K + "\t" + V));
 
                 if(alreadySeen.contains(s)) continue;
-                System.out.println(s + "\t" + t.sliceCount);
+                System.out.println(t.utilReport.substring(102, 135) + "\t" + s + "\t" + t.sliceCount); //print current state of tree TODO: use toString
+                alreadySeen.add(s);
+                requested--;
+                if(requested == 0) break;
+            }
+        }
+
+        //Sort Tree's list by number of slices
+        trees.sort(Comparator.comparing(a -> a.sliceCount));
+        //trees.forEach(System.out::println);
+
+        //LOOP #2 to generate the final Pblocks
+        for (int i = TREE_NUMBER/GROUP_NUMBER - 1; i  <= TREE_NUMBER - 1; i += TREE_NUMBER/GROUP_NUMBER){
+            Tree t = trees.get(i);
+            System.out.println(t);
+            PBlockGenerator p = new PBlockGenerator.Builder()
+                    .setOVERHEAD_RATIO(OVERHEAD_RATIO)
+                    .setASPECT_RATIO((float) COL_SIZE / (float) ROW_SIZE)
+                    .setOVERHEAD_RATIO(1.2F) //with overhead = 1 it fails placing | now 70% CLB utilization with 1.2
+                    .setGLOBAL_PBLOCK("/home/locav/dcp/checkpoint_1.dcp") //why it doesn't avoid the pblock??!!
+                    .build();
+
+//                  ┌──────────────────────────────────────────────────────────────────┐
+//                  │                                                                  │
+//                  │  If you want to instruct the algorithm to avoid certain columns, │
+//                  │                                                                  │
+//                  │  you can insert in the dcp file some pblocks.                    │
+//                  │                                                                  │
+//                  └──────────────────────────────────────────────────────────────────┘
+
+            HashSet<String> alreadySeen = new HashSet<String>();
+            int requested = p.PBLOCK_COUNT;
+            for(String s : p.generatePBlockFromReport(trees.get(i).getUtilReport(), tempFile.getAbsolutePath())){
+
+                //Get number of required slices for each tree
+                Matcher matcher = pblockCoordinates.matcher(s);
+                if (!matcher.find()) {
+                    throw new IllegalArgumentException("Regex failed!");
+                }
+                xa = Integer.parseInt(matcher.group("xa"));
+                ya = Integer.parseInt(matcher.group("ya"));
+                xb = Integer.parseInt(matcher.group("xb"));
+                yb = Integer.parseInt(matcher.group("yb"));
+                t.sliceCount = (yb - ya + 1) * (xb - xa + 1);
+
+                if(alreadySeen.contains(s)) continue;
+                System.out.println(t.utilReport.substring(102, 135) + "\t" + s + "\t" + t.sliceCount); //print current state of tree TODO: use toString
                 alreadySeen.add(s);
 
-                PBlock pblock = new PBlock(Device.getDevice(DEVICE), s);
                 Job j = JobQueue.createJob();
-                Job job = createDCP(t.getUtilReport().replace("_utilization_synth.rpt", ".dcp"), pblock, t.getUtilReport().substring(0, 59));//TODO aggiusta argomenti
+                Job job = createDCP(t.getUtilReport().replace("_utilization_synth.rpt", ".dcp"), s, t.getUtilReport().substring(0, 59));//TODO aggiusta argomenti
                 jobs.addJob(job);
                 jobLocations.put(job.getJobNumber(), t.getDesign().toString());
 
                 requested--;
                 if(requested == 0) break;
             }
+
+            //TODO: link checkpoint checkpoint_1 = checkpoint_1 + placed_pblocks
+            Job j = createUnifiedDesign("checkpoint_1.dcp", "tree_rm_0_2_inst_5_tree_cl0_2_0_0.xdc", "/home/locav/dcp");
+            jobs.addJob(j);
+            jobLocations.put(j.getJobNumber(), "unifier");
+            break;
         }
+
         jobs.runAllToCompletion();
-        //TODO: Command failed: Placer could not place all instances
-
-        //Sort Tree's list by number of slices
-        trees.sort(Comparator.comparing(a -> a.sliceCount));
-        trees.forEach(System.out::println);
-
-
-
-
-        for (int i = TREE_NUMBER/GROUP_NUMBER - 1; i  <= TREE_NUMBER - 1; i += TREE_NUMBER/GROUP_NUMBER){
-            System.out.println(trees.get(i));
-            //TODO: group trees
-
-        }
-
-
     }
-
 }
 
 
