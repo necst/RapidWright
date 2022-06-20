@@ -109,7 +109,8 @@ public class EntreeFloorplanner {
                     .setOVERHEAD_RATIO(OVERHEAD_RATIO)
                     .setASPECT_RATIO((float) COL_SIZE / (float) ROW_SIZE)
                     .setOVERHEAD_RATIO(1.2F) //with overhead = 1 it fails placing
-                    .setGLOBAL_PBLOCK("/home/locav/dcp/empty.dcp")//use empty dcp
+                    .setGLOBAL_PBLOCK("/home/locav/global.txt")//use empty dcp
+                    .setIP_NR_INSTANCES(1)
                     .build();
 
             HashSet<String> alreadySeen = new HashSet<String>();
@@ -147,19 +148,12 @@ public class EntreeFloorplanner {
 
             System.out.println(t);
             PBlockGenerator p = new PBlockGenerator.Builder()
-                    .setGLOBAL_PBLOCK("/home/locav/dcp/tree_rm_0_2_inst_5_tree_cl0_2_0_0.xdc") //why it doesn't avoid the pblock??!!
+                    .setGLOBAL_PBLOCK("/home/locav/global.txt") //why it doesn't avoid the pblock??!!
+                    .setIP_NR_INSTANCES(1)
                     .setOVERHEAD_RATIO(OVERHEAD_RATIO)
                     .setASPECT_RATIO((float) COL_SIZE / (float) ROW_SIZE)
                     .setOVERHEAD_RATIO(1.2F) //with overhead = 1 it fails placing | 70% CLB utilization with 1.2
                     .build();
-
-//                  ┌──────────────────────────────────────────────────────────────────┐
-//                  │                                                                  │
-//                  │  If you want to instruct the algorithm to avoid certain columns, │
-//                  │                                                                  │
-//                  │  you can insert in the dcp file some pblocks.                    │
-//                  │                                                                  │
-//                  └──────────────────────────────────────────────────────────────────┘
 
             HashSet<String> alreadySeen = new HashSet<String>();
             int requested = p.PBLOCK_COUNT;
@@ -190,10 +184,9 @@ public class EntreeFloorplanner {
             //TODO: link checkpoint: checkpoint_1 = checkpoint_1 + treeName.xdc
             Job j = createUnifiedDesign("checkpoint_1.dcp", treeName + ".xdc", WORKING_DIR);
             jobs.addJob(j);
-            break;
         }
 
-        jobs.runAllToCompletion();//TODO: attenzione all'ordine di esecuzione degli script! non usare JobQueue ma usa job.launchJob()
+        //jobs.runAllToCompletion();//TODO: attenzione all'ordine di esecuzione degli script! non usare JobQueue ma usa job.launchJob()
     }
 }
 
