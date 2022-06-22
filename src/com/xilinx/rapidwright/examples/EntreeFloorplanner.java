@@ -172,6 +172,12 @@ public class EntreeFloorplanner {
                 if(alreadySeen.contains(s)) continue;
                 System.out.println(treeName + "\t" + s + "\t" + t.sliceCount);//current state of trees
                 alreadySeen.add(s);
+                //TODO: assign coordinates
+                for (int j = i - TREE_NUMBER/GROUP_NUMBER + 1; j <= i; j++){
+                    trees.get(j).setCoordinates(s);
+                }
+
+
 
                 Job j = JobQueue.createJob();
                 Job job = createDCP(treeUtilReport.replace("_utilization_synth.rpt", ".dcp"), s, treeUtilReport.substring(0, 59));//TODO: aggiusta gli argomenti
@@ -181,12 +187,18 @@ public class EntreeFloorplanner {
                 if(requested == 0) break;
             }
 
+
+
             //TODO: link checkpoint: checkpoint_1 = checkpoint_1 + treeName.xdc
             Job j = createUnifiedDesign("checkpoint_1.dcp", treeName + ".xdc", WORKING_DIR);
             jobs.addJob(j);
         }
-
         //jobs.runAllToCompletion();//TODO: attenzione all'ordine di esecuzione degli script! non usare JobQueue ma usa job.launchJob()
+
+        for (Tree t : trees){
+            System.out.println(t);
+        }
+
     }
 }
 
