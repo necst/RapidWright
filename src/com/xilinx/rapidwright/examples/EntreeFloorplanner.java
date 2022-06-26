@@ -4,7 +4,9 @@ import com.xilinx.rapidwright.design.Design;
 import com.xilinx.rapidwright.design.blocks.PBlockGenerator;
 import it.necst.entree.Tree;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -25,6 +27,20 @@ public class EntreeFloorplanner {
     static final int ROW_SIZE = 60;
     static final int GROUP_NUMBER = 3; //Apriori defined number of groups
     static final String SHAPES_REPORT_FILE_NAME = "shape.txt";
+
+    public static void XDCwriter(List<Tree> trees) throws IOException {
+        FileWriter fw = new FileWriter("/home/locav/const.xdc", true);
+        BufferedWriter bw = new BufferedWriter(fw);
+        for (Tree t : trees){
+            String treeName = t.gettName();
+            bw.write("create_pblock \n" + treeName +
+                        "add_cells_to_pblock [get_pblocks " + treeName +" ] [get_cells -quiet [list top_design_i/tree_rp_1_2]]\n" +
+                        "resize_pblock [get_pblocks " + treeName +"] -add {" + t.coordinates + "}\n" +
+                        "set_property SNAPPING_MODE ON [get_pblocks " + treeName + "]");
+            bw.newLine();
+        }
+        bw.close();
+    }
     public static void main(String[] args) {
 
         int TREE_NUMBER = args.length;
@@ -46,6 +62,7 @@ public class EntreeFloorplanner {
 
         //LOOP #1 to generate the pblocks
         for (Tree t : trees) {
+            String treeName = t.gettName();
             PBlockGenerator pbGen = new PBlockGenerator.Builder()
                     .setOVERHEAD_RATIO(OVERHEAD_RATIO)
                     .setASPECT_RATIO((float) COL_SIZE / (float) ROW_SIZE)
@@ -69,7 +86,7 @@ public class EntreeFloorplanner {
                 t.sliceCount = (yb - ya + 1) * (xb - xa + 1);
 
                 if(alreadySeen.contains(s)) continue;
-                System.out.println(t.utilReport.substring(102, 135) + "\t" + s + "\t" + t.sliceCount); //print current state of tree TODO: use toString
+                System.out.println(treeName + "\t" + s + "\t" + t.sliceCount); //print current state of tree TODO: use toString
                 alreadySeen.add(s);
                 requested--;
                 if(requested == 0) break;
@@ -123,6 +140,11 @@ public class EntreeFloorplanner {
         }
         for (Tree t : trees){
             System.out.println(t);
+        }
+        try {
+            XDCwriter(trees);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
     }
