@@ -2,7 +2,6 @@ package com.xilinx.rapidwright.examples;
 
 import com.xilinx.rapidwright.design.Design;
 import com.xilinx.rapidwright.design.blocks.PBlockGenerator;
-import com.xilinx.rapidwright.util.JobQueue;
 import it.necst.entree.Tree;
 
 import java.io.File;
@@ -50,8 +49,7 @@ public class EntreeFloorplanner {
             PBlockGenerator pbGen = new PBlockGenerator.Builder()
                     .setOVERHEAD_RATIO(OVERHEAD_RATIO)
                     .setASPECT_RATIO((float) COL_SIZE / (float) ROW_SIZE)
-                    .setOVERHEAD_RATIO(1.2F) //with overhead = 1 it fails placing
-                    .setGLOBAL_PBLOCK("/home/locav/global.txt")//use empty dcp
+                    .setOVERHEAD_RATIO(1.2F)
                     .setIP_NR_INSTANCES(1)
                     .build();
 
@@ -80,17 +78,17 @@ public class EntreeFloorplanner {
 
         //Sort Tree's list by number of slices
         trees.sort(Comparator.comparing(a -> a.sliceCount));
-        //trees.forEach(System.out::println);
+
+        System.out.println("\n------------------------------------------------------------------------------\n");
 
         //LOOP #2 to generate the final Pblocks
-        for (int i = TREE_NUMBER/GROUP_NUMBER - 1; i  <= TREE_NUMBER - 1; i += TREE_NUMBER/GROUP_NUMBER){
+        for (int i = TREE_NUMBER/GROUP_NUMBER - 1; i  <= TREE_NUMBER - 1; i += TREE_NUMBER/GROUP_NUMBER) {
             Tree t = trees.get(i);
-            String treeName = t.utilReport.substring(102, 135);
             String treeUtilReport = t.getUtilReport();
 
             //System.out.println(t);
             PBlockGenerator p = new PBlockGenerator.Builder()
-                    .setGLOBAL_PBLOCK("/home/locav/global.txt") //why it doesn't avoid the pblock??!!
+                    .setGLOBAL_PBLOCK("/home/locav/global.txt")
                     .setIP_NR_INSTANCES(1)
                     .setOVERHEAD_RATIO(OVERHEAD_RATIO)
                     .setASPECT_RATIO((float) COL_SIZE / (float) ROW_SIZE)
@@ -99,7 +97,7 @@ public class EntreeFloorplanner {
 
             HashSet<String> alreadySeen = new HashSet<String>();
             int requested = p.PBLOCK_COUNT;
-            for(String s : p.generatePBlockFromReport(treeUtilReport, tempFile.getAbsolutePath())){
+            for (String s : p.generatePBlockFromReport(treeUtilReport, tempFile.getAbsolutePath())) {
                 //Get number of required slices for each tree
                 Matcher matcher = pblockCoordinates.matcher(s);
                 if (!matcher.find()) {
@@ -111,11 +109,11 @@ public class EntreeFloorplanner {
                 yb = Integer.parseInt(matcher.group("yb"));
                 t.sliceCount = (yb - ya + 1) * (xb - xa + 1);
 
-                if(alreadySeen.contains(s)) continue;
-                //System.out.println(treeName + "\t" + s + "\t" + t.sliceCount);//current state of trees
+                if (alreadySeen.contains(s)) continue;
+                //System.out.println(treeName + "\t" + s + "\t" + t.sliceCount);
                 alreadySeen.add(s);
 
-                for (int j = i - TREE_NUMBER/GROUP_NUMBER + 1; j <= i; j++){
+                for (int j = i - TREE_NUMBER / GROUP_NUMBER + 1; j <= i; j++) {
                     trees.get(j).setCoordinates(s);
                 }
 
@@ -123,7 +121,6 @@ public class EntreeFloorplanner {
                 if(requested == 0) break;
             }
         }
-
         for (Tree t : trees){
             System.out.println(t);
         }
