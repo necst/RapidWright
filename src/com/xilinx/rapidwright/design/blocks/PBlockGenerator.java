@@ -948,7 +948,9 @@ public class PBlockGenerator {
 			throw new RuntimeException("ERROR: PBlockGenerator couldn't match a compatible pattern with numSLICECols=" + numSLICEColumns +
 					" numSLICEMCols=" + numSLICEMColumns + " numDSPColumns="+numDSPColumns + " numBRAMColumns=" + numBRAMColumns);
 		}
-		boolean trivial = matches.get(0).size() < 2;
+		//FIXME - This is a hack to exit "trivial mode", but it's not the best way to do this
+		//boolean trivial = matches.get(0).size() < 2;
+		boolean trivial = false;
 		ArrayList<String> pBlocks = new ArrayList<String>(PBLOCK_COUNT);
 
 		// Code inserted to obtain the pblock pattern having the highest number of free resources on the device
