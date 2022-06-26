@@ -12,7 +12,6 @@ public class Tree {
     public final int classId;
     public final Design design;
     public String coordinates;
-
     public int sliceCount;
     public Tree(String utilReport, Design design) {
         this.utilReport = utilReport;
@@ -49,6 +48,9 @@ public class Tree {
     }
     public String getUtilReport() {
         return utilReport;
+    }
+    public String gettName() {
+        return this.utilReport.substring(102, 135);
     }
     public Design getDesign() {
         return design;
