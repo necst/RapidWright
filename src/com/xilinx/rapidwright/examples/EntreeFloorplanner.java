@@ -33,8 +33,9 @@ public class EntreeFloorplanner {
         BufferedWriter bw = new BufferedWriter(fw);
         for (Tree t : trees){
             String treeName = t.gettName();
+            //TODO: you don't need to use all pblocks, just the first of each group
             bw.write("create_pblock \n" + treeName +
-                        "add_cells_to_pblock [get_pblocks " + treeName +" ] [get_cells -quiet [list top_design_i/tree_rp_1_2]]\n" +
+                        "add_cells_to_pblock [get_pblocks " + treeName + " ] [get_cells -quiet [list top_design_i/tree_rp_1_2]]\n" +
                         "resize_pblock [get_pblocks " + treeName +"] -add {" + t.coordinates + "}\n" +
                         "set_property SNAPPING_MODE ON [get_pblocks " + treeName + "]");
             bw.newLine();
