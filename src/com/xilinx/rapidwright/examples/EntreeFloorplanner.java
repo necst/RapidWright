@@ -4,10 +4,7 @@ import com.xilinx.rapidwright.design.Design;
 import com.xilinx.rapidwright.design.blocks.PBlockGenerator;
 import it.necst.entree.Tree;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -27,22 +24,7 @@ public class EntreeFloorplanner {
     static final int ROW_SIZE = 60;
     static final int GROUP_NUMBER = 3; //Apriori defined number of groups
     static final String SHAPES_REPORT_FILE_NAME = "shape.txt";
-
-    public static void XDCwriter(List<Tree> trees) throws IOException {
-        FileWriter fw = new FileWriter("/home/locav/const.xdc", true);
-        BufferedWriter bw = new BufferedWriter(fw);
-        for (Tree t : trees){
-            String treeName = t.gettName();
-            //TODO: you don't need to use all pblocks, just the first of each group
-            bw.write("create_pblock \n" + treeName +
-                        "add_cells_to_pblock [get_pblocks " + treeName + " ] [get_cells -quiet [list top_design_i/tree_rp_1_2]]\n" +
-                        "resize_pblock [get_pblocks " + treeName +"] -add {" + t.coordinates + "}\n" +
-                        "set_property SNAPPING_MODE ON [get_pblocks " + treeName + "]");
-            bw.newLine();
-        }
-        bw.close();
-    }
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         int TREE_NUMBER = args.length;
 
@@ -142,12 +124,17 @@ public class EntreeFloorplanner {
         for (Tree t : trees){
             System.out.println(t);
         }
-        try {
-            XDCwriter(trees);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
+        PrintWriter pw = new PrintWriter("/home/locav/const.xdc");
+        for (int i = TREE_NUMBER/GROUP_NUMBER - 1; i  <= TREE_NUMBER - 1; i += TREE_NUMBER/GROUP_NUMBER){
+            Tree t = trees.get(i);
+            String treeName = t.gettName();
+            pw.write("create_pblock \n" + treeName +
+                        "add_cells_to_pblock [get_pblocks " + treeName + " ] [get_cells -quiet [list top_design_i/tree_rp_1_2]]\n" +
+                        "resize_pblock [get_pblocks " + treeName +"] -add {" + t.coordinates + "}\n" +
+                        "set_property SNAPPING_MODE ON [get_pblocks " + treeName + "]\n");
+        }
+        pw.close();
     }
 }
 
