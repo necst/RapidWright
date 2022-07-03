@@ -13,6 +13,10 @@ public class Tree {
     public final Design design;
     public String coordinates;
     public int sliceCount;
+    public int bankNumber;
+    public int treeNumber;
+    public int group;
+
     public Tree(String utilReport, Design design) {
         this.utilReport = utilReport;
         this.design = design;
@@ -58,8 +62,26 @@ public class Tree {
     public String getCoordinates() {
         return coordinates;
     }
+    public int getBankNumber() {
+        return bankNumber;
+    }
+    public int getTreeNumber() {
+        return treeNumber;
+    }
+    public int getGroup() {
+        return group;
+    }
     public void setCoordinates(String coordinates) {
         this.coordinates = coordinates;
+    }
+    public void setBankNumber(int bank) {
+        this.bankNumber = bank;
+    }
+    public void setTreeNumber(int treeNumber) {
+        this.treeNumber = treeNumber;
+    }
+    public void setGroup(int group) {
+        this.group = group;
     }
 
     @Override
