@@ -11,16 +11,12 @@ public class Tree {
     public final int estimatorId;
     public final int classId;
     public final Design design;
-    public String coordinates;
     public int sliceCount;
-    public int bankNumber;
-    public int treeNumber;
-    public int group;
+
 
     public Tree(String utilReport, Design design) {
         this.utilReport = utilReport;
         this.design = design;
-        this.coordinates = getCoordinates();
 
         String name = design.getNetlist().getTopCell().getCellInst("inst").getCellName();
         Matcher matcher = treeName.matcher(name);
@@ -37,7 +33,6 @@ public class Tree {
                 "estimatorId=" + estimatorId +
                 ", classId=" + classId +
                 ", sliceCount=" + sliceCount +
-                ", coordinates=" + coordinates +
                 '}';
     }
 
@@ -59,31 +54,6 @@ public class Tree {
     public Design getDesign() {
         return design;
     }
-    public String getCoordinates() {
-        return coordinates;
-    }
-    public int getBankNumber() {
-        return bankNumber;
-    }
-    public int getTreeNumber() {
-        return treeNumber;
-    }
-    public int getGroup() {
-        return group;
-    }
-    public void setCoordinates(String coordinates) {
-        this.coordinates = coordinates;
-    }
-    public void setBankNumber(int bank) {
-        this.bankNumber = bank;
-    }
-    public void setTreeNumber(int treeNumber) {
-        this.treeNumber = treeNumber;
-    }
-    public void setGroup(int group) {
-        this.group = group;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
