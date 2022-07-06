@@ -6,10 +6,7 @@ import it.necst.entree.Tree;
 
 import java.io.*;
 import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -18,14 +15,14 @@ public class EntreeFloorplanner {
     public static final Pattern pblockCoordinates = Pattern.compile("^SLICE_X(?<xa>\\d+)Y(?<ya>\\d+):SLICE_X(?<xb>\\d+)Y(?<yb>\\d+)$");
     static final float OVERHEAD_RATIO = 1.2F;  //with overhead = 1 it fails placing | 70% CLB utilization with overhead = 1.2
     static final int COL_SIZE = 1;
-    static final int ROW_SIZE = 60; // row and col size defined by the fpga fabric
-    static final int GROUP_NUMBER = 6; //Apriori defined number of groups
-    static final int BANKS = 2; //Apriori defined number of banks
-    static final String WORKING_DIR = "/home/locav/"; //Set the working directory
-    static final String SHAPES_REPORT_FILE_NAME = "shape";
+    static final int ROW_SIZE = 60;                     //row and col size defined by the FPGA's fabric
+    static final int RECONFIGURABLE_REGIONS = 4;        //Apriori defined number of reconf. regions
+    static final int BANKS = 2;                         //Apriori defined number of banks
+    static final String WORKING_DIR = "/home/locav/";   //Set the working directory
+    static final String SHAPES_REPORT_FILE_NAME = "shape.txt";
     static final String GLOBAL_PBLOCKS_FILE_NAME = "global_pblocks.txt";
-    static final String CONSTRAINTS_FILE_NAME = "const.xdc";
-    static final String CSV_FILE_NAME = "tree_info.csv";
+    static final String CONSTRAINTS_FILE_NAME = "top_system_pblock.xdc";
+    static final String CSV_FILE_NAME = "trees_info.csv";
     private static int getSliceNumberFromCoordinates(String coordinates){
         Matcher matcher = pblockCoordinates.matcher(coordinates);
         if (!matcher.find()) {
@@ -37,31 +34,24 @@ public class EntreeFloorplanner {
         int yb = Integer.parseInt(matcher.group("yb"));
         return (yb - ya + 1) * (xb - xa + 1);
     }
-    private static void createCSV(List<Tree> trees, String filename) throws IOException {
+    private static void createCSV(List<Tree> trees, TreeMap<String, String> reconfigurableRegions, String filename) throws IOException {
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(2);
 
-        List<String> c =
-                trees.stream()
-                        .map(Tree::getCoordinates)
-                        .distinct()
-                        .collect(Collectors.toList());
-
         PrintWriter pw = new PrintWriter(filename);
         StringBuilder csvBody = new StringBuilder();
-        pw.write("Tree Name;EstimatorID;ClassID;Group;Coordinates;");
-        for (int i = 1; i <= GROUP_NUMBER; i++){
-            pw.write("Tree / Group #" + i + ";");
+        pw.write("Tree Name;EstimatorID;ClassID;SliceNumber;");
+        for (int i = 0; i < RECONFIGURABLE_REGIONS; i++){
+            pw.write(reconfigurableRegions.keySet().toArray()[i] + ";");
         }
         pw.write("\n");
         for (Tree t : trees) { //body
             csvBody.append(t.gettName()).append(";")
                     .append(t.getEstimatorId()).append(";")
                     .append(t.getClassId()).append(";")
-                    .append(t.getGroup()).append(";")
-                    .append(t.getCoordinates()).append(";");
-            for (String s : c) {
-                csvBody.append(df.format((float) t.sliceCount / (float) getSliceNumberFromCoordinates(s))).append(";");
+                    .append(t.getSliceCount()).append(";");
+            for (String s : reconfigurableRegions.keySet()) {
+                csvBody.append(df.format((float) t.getSliceCount() / (float) getSliceNumberFromCoordinates(reconfigurableRegions.get(s)))).append(";");
             }
             csvBody.append("\n");
         }
@@ -69,6 +59,9 @@ public class EntreeFloorplanner {
         pw.close();
     }
     public static void main(String[] args) throws IOException {
+
+        TreeMap<String, String> reconfigurableRegions = new TreeMap<>();
+
         File globalPblocksFile = new File(WORKING_DIR + GLOBAL_PBLOCKS_FILE_NAME);
         File constraintsFile = new File(WORKING_DIR + CONSTRAINTS_FILE_NAME);
         File csvFile = new File(WORKING_DIR + CSV_FILE_NAME);
@@ -78,7 +71,7 @@ public class EntreeFloorplanner {
 
         File tempFile;
         try {
-            tempFile = File.createTempFile(SHAPES_REPORT_FILE_NAME, ".txt");
+            tempFile = File.createTempFile(SHAPES_REPORT_FILE_NAME, "");
 
         } catch (IOException e) {
             System.out.println("Unable to create tmp file.");
@@ -120,11 +113,14 @@ public class EntreeFloorplanner {
         trees.sort(Comparator.comparing(a -> a.sliceCount));
 
         System.out.println("\n------------------------------------------------------------------------------\n");
-
-        //LOOP #2 to generate the final Pblocks, csv and xdc files
         PrintWriter pw = new PrintWriter(constraintsFile.getAbsolutePath());
-
-        for (int i = TREE_NUMBER/GROUP_NUMBER - 1; i  < TREE_NUMBER; i += TREE_NUMBER/GROUP_NUMBER) { //loop over groups
+        //LOOP #2 to generate the final Pblocks, csv and xdc files
+        int m = 0, n = 0;
+        for (int i = TREE_NUMBER/RECONFIGURABLE_REGIONS - 1; i  < TREE_NUMBER; i += TREE_NUMBER/RECONFIGURABLE_REGIONS) { //loop over groups
+            if (n == BANKS) {
+                m++;
+                n = 0;
+            }
             Tree t = trees.get(i);
             String treeUtilReport = t.getUtilReport();
 
@@ -139,21 +135,21 @@ public class EntreeFloorplanner {
             for (String s : p.generatePBlockFromReport(treeUtilReport, tempFile.getAbsolutePath())) {
                 if (alreadySeen.contains(s)) continue;
                 alreadySeen.add(s);
-                for (int j = i - TREE_NUMBER / GROUP_NUMBER + 1; j <= i; j++) {
-                    Tree o = trees.get(j);
-                    o.setCoordinates(s);
-                    o.setTreeNumber(0); //Assign tree number to each tree in bank
-                    o.setBankNumber(i / (TREE_NUMBER/BANKS));
-                    o.setGroup(j / (TREE_NUMBER/GROUP_NUMBER) % GROUP_NUMBER + 1); //Assign group number to each tree
-                }
+
+                String partition = "pblock_tree_rp_" + m + "_" + n;
+                n++;
+
+
+                reconfigurableRegions.put(partition, s);
+
+                pw.write(   "create_pblock " + partition + "\n" +
+                        "add_cells_to_pblock [get_pblocks " + partition + "] [get_cells -quiet [list top_design_i/" + partition + "]]\n" +
+                        "resize_pblock [get_pblocks " + partition + "] -add {" + reconfigurableRegions.get(partition) + "}\n" +
+                        "set_property SNAPPING_MODE ON [get_pblocks " + partition + "]\n");
 
                 requested--;
                 if(requested == 0) break;
             }
-            pw.write("create_pblock " + t.gettName() + "\n" +
-                    "add_cells_to_pblock [get_pblocks " + t.gettName() + " ] [get_cells -quiet [list top_design_i/tree_rp_" + t.getBankNumber() + "_" + t.getTreeNumber() +"]]\n" +
-                    "resize_pblock [get_pblocks " + t.gettName() +"] -add {" + t.getCoordinates() + "}\n" +
-                    "set_property SNAPPING_MODE ON [get_pblocks " + t.gettName() + "]\n");
         }
         pw.close();
 
@@ -162,11 +158,16 @@ public class EntreeFloorplanner {
         }
 
         System.out.println("\n------------------------------------------------------------------------------\n");
-        createCSV(trees, csvFile.getAbsolutePath());
+        createCSV(trees, reconfigurableRegions, csvFile.getAbsolutePath());
 
     }
+    //TODO: gestisci se il numero di alberi non è multiplo di RECONFIGURABLE_REGIONS
+    //TODO: gestisci il csv e script python
+    //TODO: mappa per reconf regions e coordinate?
+    //Quali sono i confini tra floorlanner e scheduler? Ha senso assegnare un gruppo ad un albero?
+    //voglio una mappa di RR - coordinate e poi assegno gli alberi ai pblocks
+    //ad ogni albero non assegno alcun pblock/rr, solo il numero di slices che richiede
 
-    //FIXME: non vengono evitati i pblocks anche se inseriti in global.txt manualmente
 }
 
 
