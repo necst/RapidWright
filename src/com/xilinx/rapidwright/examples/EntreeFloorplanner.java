@@ -40,18 +40,23 @@ public class EntreeFloorplanner {
 
         PrintWriter pw = new PrintWriter(filename);
         StringBuilder csvBody = new StringBuilder();
-        pw.write("Tree Name;EstimatorID;ClassID;SliceNumber;");
+        pw.write("treeName;");
         for (int i = 0; i < RECONFIGURABLE_REGIONS; i++){
-            pw.write(reconfigurableRegions.keySet().toArray()[i] + ";");
+            if (i == RECONFIGURABLE_REGIONS - 1) {
+                pw.write(reconfigurableRegions.lastKey());
+                break;
+            }
+            else pw.write(reconfigurableRegions.keySet().toArray()[i] + ";");
         }
         pw.write("\n");
-        for (Tree t : trees) { //body
-            csvBody.append(t.gettName()).append(";")
-                    .append(t.getEstimatorId()).append(";")
-                    .append(t.getClassId()).append(";")
-                    .append(t.getSliceCount()).append(";");
+        for (Tree t : trees) {
+            csvBody.append(t.gettName()).append(";");
             for (String s : reconfigurableRegions.keySet()) {
-                csvBody.append(df.format((float) t.getSliceCount() / (float) getSliceNumberFromCoordinates(reconfigurableRegions.get(s)))).append(";");
+                if (Objects.equals(s, reconfigurableRegions.lastKey())){
+                    csvBody.append(df.format((float) t.getSliceCount() / (float) getSliceNumberFromCoordinates(reconfigurableRegions.get(s))));
+                    break;
+                }
+                else csvBody.append(df.format((float) t.getSliceCount() / (float) getSliceNumberFromCoordinates(reconfigurableRegions.get(s)))).append(";");
             }
             csvBody.append("\n");
         }
@@ -162,11 +167,12 @@ public class EntreeFloorplanner {
 
     }
     //TODO: gestisci se il numero di alberi non è multiplo di RECONFIGURABLE_REGIONS
-    //TODO: gestisci il csv e script python
+    //TODO: gestisci il csv e script PYTHON
     //TODO: mappa per reconf regions e coordinate?
     //Quali sono i confini tra floorlanner e scheduler? Ha senso assegnare un gruppo ad un albero?
     //voglio una mappa di RR - coordinate e poi assegno gli alberi ai pblocks
     //ad ogni albero non assegno alcun pblock/rr, solo il numero di slices che richiede
+    //TODO: gestisci l'assegnazione degli alberi alla migliore RR
 
 }
 
