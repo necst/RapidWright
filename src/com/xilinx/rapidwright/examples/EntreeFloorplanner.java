@@ -6,6 +6,7 @@ import it.necst.entree.Tree;
 
 import java.io.*;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -16,8 +17,6 @@ public class EntreeFloorplanner {
     static final float OVERHEAD_RATIO = 1.2F;  //with overhead = 1 it fails placing | 70% CLB utilization with overhead = 1.2
     static final int COL_SIZE = 1;
     static final int ROW_SIZE = 60;                     //row and col size defined by the FPGA's fabric
-    static final int RECONFIGURABLE_REGIONS = 4;        //Apriori defined number of reconf. regions
-    static final int BANKS = 2;                         //Apriori defined number of banks
     static final String WORKING_DIR = "/home/locav/";   //Set the working directory
     static final String SHAPES_REPORT_FILE_NAME = "shape.txt";
     static final String GLOBAL_PBLOCKS_FILE_NAME = "global_pblocks.txt";
@@ -34,36 +33,10 @@ public class EntreeFloorplanner {
         int yb = Integer.parseInt(matcher.group("yb"));
         return (yb - ya + 1) * (xb - xa + 1);
     }
-    private static void createCSV(List<Tree> trees, TreeMap<String, String> reconfigurableRegions, String filename) throws IOException {
-        DecimalFormat df = new DecimalFormat();
-        df.setMaximumFractionDigits(2);
-
-        PrintWriter pw = new PrintWriter(filename);
-        StringBuilder csvBody = new StringBuilder();
-        pw.write("treeName;");
-        for (int i = 0; i < RECONFIGURABLE_REGIONS; i++){
-            if (i == RECONFIGURABLE_REGIONS - 1) {
-                pw.write(reconfigurableRegions.lastKey());
-                break;
-            }
-            else pw.write(reconfigurableRegions.keySet().toArray()[i] + ";");
-        }
-        pw.write("\n");
-        for (Tree t : trees) {
-            csvBody.append(t.gettName()).append(";");
-            for (String s : reconfigurableRegions.keySet()) {
-                if (Objects.equals(s, reconfigurableRegions.lastKey())){
-                    csvBody.append(df.format((float) t.getSliceCount() / (float) getSliceNumberFromCoordinates(reconfigurableRegions.get(s))));
-                    break;
-                }
-                else csvBody.append(df.format((float) t.getSliceCount() / (float) getSliceNumberFromCoordinates(reconfigurableRegions.get(s)))).append(";");
-            }
-            csvBody.append("\n");
-        }
-        pw.write(csvBody.toString());
-        pw.close();
-    }
     public static void main(String[] args) throws IOException {
+
+        int RECONFIGURABLE_REGIONS = Integer.parseInt(args[0]);
+        int BANKS = Integer.parseInt(args[1]);
 
         TreeMap<String, String> reconfigurableRegions = new TreeMap<>();
 
@@ -84,10 +57,11 @@ public class EntreeFloorplanner {
         }
         tempFile.deleteOnExit();
 
-        int TREE_NUMBER = args.length;
+        int TREE_NUMBER = args.length - 2;
 
         List<Tree> trees =
                 Arrays.stream(args)
+                        .skip(2)
                         .map(path -> new Tree(path.replace(".dcp", "_utilization_synth.rpt"), Design.readCheckpoint(path, true)))
                         .collect(Collectors.toList());
 
@@ -122,7 +96,7 @@ public class EntreeFloorplanner {
         //LOOP #2 to generate the final Pblocks, csv and xdc files
         int m = 0, n = 0;
         for (int i = TREE_NUMBER/RECONFIGURABLE_REGIONS - 1; i  < TREE_NUMBER; i += TREE_NUMBER/RECONFIGURABLE_REGIONS) { //loop over groups
-            if (n == BANKS) {
+            if (n == RECONFIGURABLE_REGIONS/BANKS) {
                 m++;
                 n = 0;
             }
@@ -163,17 +137,38 @@ public class EntreeFloorplanner {
         }
 
         System.out.println("\n------------------------------------------------------------------------------\n");
-        createCSV(trees, reconfigurableRegions, csvFile.getAbsolutePath());
 
+        //CSV writer
+
+        DecimalFormat df = new DecimalFormat();
+        df.setMaximumFractionDigits(2);
+        df.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.US));
+
+        PrintWriter csvWriter = new PrintWriter(csvFile.getAbsolutePath());
+        StringBuilder csvBody = new StringBuilder();
+        csvWriter.write("treeName,");
+        for (int i = 0; i < RECONFIGURABLE_REGIONS; i++){
+            if (i == RECONFIGURABLE_REGIONS - 1) {
+                csvWriter.write(reconfigurableRegions.lastKey());
+                break;
+            }
+            else csvWriter.write(reconfigurableRegions.keySet().toArray()[i] + ",");
+        }
+        csvWriter.write("\n");
+        for (Tree t : trees) {
+            csvBody.append(t.gettName()).append(",");
+            for (String s : reconfigurableRegions.keySet()) {
+                if (Objects.equals(s, reconfigurableRegions.lastKey())){
+                    csvBody.append(df.format((float) t.getSliceCount() / (float) getSliceNumberFromCoordinates(reconfigurableRegions.get(s))));
+                    break;
+                }
+                else csvBody.append(df.format((float) t.getSliceCount() / (float) getSliceNumberFromCoordinates(reconfigurableRegions.get(s)))).append(",");
+            }
+            csvBody.append("\n");
+        }
+        csvWriter.write(csvBody.toString());
+        csvWriter.close();
     }
-    //TODO: gestisci se il numero di alberi non è multiplo di RECONFIGURABLE_REGIONS
-    //TODO: gestisci il csv e script PYTHON
-    //TODO: mappa per reconf regions e coordinate?
-    //Quali sono i confini tra floorlanner e scheduler? Ha senso assegnare un gruppo ad un albero?
-    //voglio una mappa di RR - coordinate e poi assegno gli alberi ai pblocks
-    //ad ogni albero non assegno alcun pblock/rr, solo il numero di slices che richiede
-    //TODO: gestisci l'assegnazione degli alberi alla migliore RR
-
 }
 
 
