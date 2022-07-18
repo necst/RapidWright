@@ -18,7 +18,6 @@ public class EntreeFloorplanner {
     static final int COL_SIZE = 1;
     static final int ROW_SIZE = 60;                         //row and col size defined by the FPGA's fabric
     static final String SHAPES_REPORT_FILE_NAME = "shape.txt";
-    static final String GLOBAL_PBLOCKS_FILE_NAME = "global_pblocks.txt";
     private static int getSliceNumberFromCoordinates(String coordinates){
         Matcher matcher = pblockCoordinates.matcher(coordinates);
         if (!matcher.find()) {
@@ -34,18 +33,15 @@ public class EntreeFloorplanner {
 
         int RECONFIGURABLE_REGIONS = Integer.parseInt(args[0]);
         int BANKS = Integer.parseInt(args[1]);
-        File RUNS_DIR = new File(args[2]);
-        File CONSTRAINTS_FILE_NAME = new File(args[3]);
-        File CSV_FILE_NAME = new File(args[4]);
-
-        TreeMap<String, String> reconfigurableRegions = new TreeMap<>();
-
-        File globalPblocksFile = new File(GLOBAL_PBLOCKS_FILE_NAME);
-        File constraintsFile = new File(CONSTRAINTS_FILE_NAME.getAbsolutePath());
-        File csvFile = new File(CSV_FILE_NAME.getAbsolutePath());
+        File runsDir = new File(args[2]);
+        File constraintsFile = new File(args[3]);
+        File csvFile = new File(args[4]);
+        File globalPblocksFile = new File(args[5]);
         globalPblocksFile.createNewFile();
         constraintsFile.createNewFile();
         csvFile.createNewFile();
+
+        TreeMap<String, String> reconfigurableRegions = new TreeMap<>();
 
         File tempFile;
         try {
@@ -59,8 +55,8 @@ public class EntreeFloorplanner {
 
         List<Tree> trees = new ArrayList<>();
 
-        if (RUNS_DIR.exists() && RUNS_DIR.isDirectory()) {
-            for (File child : Objects.requireNonNull(RUNS_DIR.listFiles())) {
+        if (runsDir.exists() && runsDir.isDirectory()) {
+            for (File child : Objects.requireNonNull(runsDir.listFiles())) {
                 if (child.getName().matches(String.valueOf(dirName))) {
                     for (File dcp : Objects.requireNonNull(child.listFiles())) {
                         if (dcp.getName().endsWith(".dcp")) {
