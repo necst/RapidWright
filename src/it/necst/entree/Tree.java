@@ -49,7 +49,7 @@ public class Tree {
         return utilReport;
     }
     public String gettName() {
-        return this.utilReport.substring(102, 135);
+        return this.design.toString().replace(".dcp", "");
     }
     public Design getDesign() {
         return design;
