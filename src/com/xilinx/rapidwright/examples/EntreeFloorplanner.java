@@ -10,18 +10,15 @@ import java.text.DecimalFormatSymbols;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class EntreeFloorplanner {
     public static final Pattern pblockCoordinates = Pattern.compile("^SLICE_X(?<xa>\\d+)Y(?<ya>\\d+):SLICE_X(?<xb>\\d+)Y(?<yb>\\d+)$");
-    static final float OVERHEAD_RATIO = 1.2F;  //with overhead = 1 it fails placing | 70% CLB utilization with overhead = 1.2
+    public static final Pattern dirName = Pattern.compile("^tree_rm_\\d+_\\d+_inst_\\d+_tree_cl\\d+_\\d+_\\d+_\\d+_synth_\\d+$");
+    static final float OVERHEAD_RATIO = 1.2F;               //with overhead = 1 it fails placing | 70% CLB utilization with overhead = 1.2
     static final int COL_SIZE = 1;
-    static final int ROW_SIZE = 60;                     //row and col size defined by the FPGA's fabric
-    static final String WORKING_DIR = "/home/locav/";   //Set the working directory
+    static final int ROW_SIZE = 60;                         //row and col size defined by the FPGA's fabric
     static final String SHAPES_REPORT_FILE_NAME = "shape.txt";
     static final String GLOBAL_PBLOCKS_FILE_NAME = "global_pblocks.txt";
-    static final String CONSTRAINTS_FILE_NAME = "top_system_pblock.xdc";
-    static final String CSV_FILE_NAME = "trees_info.csv";
     private static int getSliceNumberFromCoordinates(String coordinates){
         Matcher matcher = pblockCoordinates.matcher(coordinates);
         if (!matcher.find()) {
@@ -37,12 +34,15 @@ public class EntreeFloorplanner {
 
         int RECONFIGURABLE_REGIONS = Integer.parseInt(args[0]);
         int BANKS = Integer.parseInt(args[1]);
+        File RUNS_DIR = new File(args[2]);
+        File CONSTRAINTS_FILE_NAME = new File(args[3]);
+        File CSV_FILE_NAME = new File(args[4]);
 
         TreeMap<String, String> reconfigurableRegions = new TreeMap<>();
 
-        File globalPblocksFile = new File(WORKING_DIR + GLOBAL_PBLOCKS_FILE_NAME);
-        File constraintsFile = new File(WORKING_DIR + CONSTRAINTS_FILE_NAME);
-        File csvFile = new File(WORKING_DIR + CSV_FILE_NAME);
+        File globalPblocksFile = new File(GLOBAL_PBLOCKS_FILE_NAME);
+        File constraintsFile = new File(CONSTRAINTS_FILE_NAME.getAbsolutePath());
+        File csvFile = new File(CSV_FILE_NAME.getAbsolutePath());
         globalPblocksFile.createNewFile();
         constraintsFile.createNewFile();
         csvFile.createNewFile();
@@ -57,13 +57,21 @@ public class EntreeFloorplanner {
         }
         tempFile.deleteOnExit();
 
-        int TREE_NUMBER = args.length - 2;
+        List<Tree> trees = new ArrayList<>();
 
-        List<Tree> trees =
-                Arrays.stream(args)
-                        .skip(2)
-                        .map(path -> new Tree(path.replace(".dcp", "_utilization_synth.rpt"), Design.readCheckpoint(path, true)))
-                        .collect(Collectors.toList());
+        if (RUNS_DIR.exists() && RUNS_DIR.isDirectory()) {
+            for (File child : Objects.requireNonNull(RUNS_DIR.listFiles())) {
+                if (child.getName().matches(String.valueOf(dirName))) {
+                    for (File dcp : Objects.requireNonNull(child.listFiles())) {
+                        if (dcp.getName().endsWith(".dcp")) {
+                            Tree t = new Tree(dcp.getAbsolutePath().replace(".dcp", "_utilization_synth.rpt"), Design.readCheckpoint(dcp.getAbsolutePath(), true));
+                            trees.add(t);
+                        }
+                    }
+                }
+            }
+        }
+        int TREE_NUMBER = trees.size();
 
         //LOOP #1 to generate the pblocks
         for (Tree t : trees) {
