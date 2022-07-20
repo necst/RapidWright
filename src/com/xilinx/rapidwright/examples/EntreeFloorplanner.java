@@ -85,7 +85,6 @@ public class EntreeFloorplanner {
                 t.sliceCount = getSliceNumberFromCoordinates(s);
 
                 if(alreadySeen.contains(s)) continue;
-                System.out.println(treeName + "\t" + s + "\t" + t.sliceCount); //print current state of tree TODO: use toString
                 alreadySeen.add(s);
                 requested--;
                 if(requested == 0) break;
@@ -95,7 +94,6 @@ public class EntreeFloorplanner {
         //Sort Tree's list by number of slices
         trees.sort(Comparator.comparing(a -> a.sliceCount));
 
-        System.out.println("\n------------------------------------------------------------------------------\n");
         PrintWriter pw = new PrintWriter(constraintsFile.getAbsolutePath());
         //LOOP #2 to generate the final Pblocks, csv and xdc files
         int m = 0, n = 0;
@@ -135,12 +133,6 @@ public class EntreeFloorplanner {
             }
         }
         pw.close();
-
-        for (Tree t : trees){
-            System.out.println(t);
-        }
-
-        System.out.println("\n------------------------------------------------------------------------------\n");
 
         //CSV writer
 
