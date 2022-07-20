@@ -49,7 +49,12 @@ public class Tree {
         return utilReport;
     }
     public String gettName() {
-        return this.design.toString().replace(".dcp", "");
+        Pattern treeName = Pattern.compile("^tree_rm_\\d+_\\d+");
+        Matcher matcher = treeName.matcher(this.design.toString());
+        if (!matcher.find()) {
+            throw new IllegalArgumentException("Regex failed!");
+        }
+        return matcher.group();
     }
     public Design getDesign() {
         return design;
