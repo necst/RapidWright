@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 
 public class EntreeFloorplanner {
     public static final Pattern pblockCoordinates = Pattern.compile("^SLICE_X(?<xa>\\d+)Y(?<ya>\\d+):SLICE_X(?<xb>\\d+)Y(?<yb>\\d+)$");
-    public static final Pattern dirName = Pattern.compile("^tree_rm_\\d+_\\d+_inst_\\d+_tree_cl\\d+_\\d+_\\d+_\\d+_synth_\\d+$");
+    public static final Pattern dirName = Pattern.compile("^tree_rm_\\d+_\\d+_tree_cl\\d+_\\d+_\\d+_\\d+_synth_\\d+$");
     static final float OVERHEAD_RATIO = 1.2F;               //with overhead = 1 it fails placing | 70% CLB utilization with overhead = 1.2
     static final int COL_SIZE = 1;
     static final int ROW_SIZE = 60;                         //row and col size defined by the FPGA's fabric
@@ -117,16 +117,16 @@ public class EntreeFloorplanner {
                 if (alreadySeen.contains(s)) continue;
                 alreadySeen.add(s);
 
-                String partition = "pblock_tree_rp_" + m + "_" + n;
+                String partition = "tree_rp_" + m + "_" + n;
                 n++;
 
 
                 reconfigurableRegions.put(partition, s);
 
-                pw.write(   "create_pblock " + partition + "\n" +
-                        "add_cells_to_pblock [get_pblocks " + partition + "] [get_cells -quiet [list top_design_i/" + partition + "]]\n" +
-                        "resize_pblock [get_pblocks " + partition + "] -add {" + reconfigurableRegions.get(partition) + "}\n" +
-                        "set_property SNAPPING_MODE ON [get_pblocks " + partition + "]\n");
+                pw.write(   "create_pblock " + "pblock_" + partition + "\n" +
+                        "add_cells_to_pblock " + "pblock_" + partition + " [get_cells [list top_system_i/" + partition + "]]\n" +
+                        "resize_pblock pblock_" + partition + " -add {" + reconfigurableRegions.get(partition) + "}\n" +
+                        "set_property SNAPPING_MODE OFF [get_pblocks " + "pblock_" + partition + "]\n");
 
                 requested--;
                 if(requested == 0) break;

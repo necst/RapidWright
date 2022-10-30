@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 public class Tree {
-    public static final Pattern treeName = Pattern.compile("^tree_rm_\\d+_\\d+_inst_\\d+_tree_cl(?<class>\\d+)_(?<estimator>\\d+)_");
+    public static final Pattern treeName = Pattern.compile("^tree_rm_\\d+_\\d+_tree_cl(?<class>\\d+)_(?<estimator>\\d+)_");
     public final String utilReport;
     public final int estimatorId;
     public final int classId;
