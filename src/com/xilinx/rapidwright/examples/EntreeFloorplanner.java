@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 public class EntreeFloorplanner {
     public static final Pattern pblockCoordinates = Pattern.compile("^SLICE_X(?<xa>\\d+)Y(?<ya>\\d+):SLICE_X(?<xb>\\d+)Y(?<yb>\\d+)$");
     public static final Pattern dirName = Pattern.compile("^tree_rm_\\d+_\\d+_tree_cl\\d+_\\d+_\\d+_\\d+_synth_\\d+$");
-    static final float OVERHEAD_RATIO = 1.2F;               //with overhead = 1 it fails placing | 70% CLB utilization with overhead = 1.2
+    static final float OVERHEAD_RATIO = 7.0F;               //with overhead = 1 it fails placing | 70% CLB utilization with overhead = 1.2
     static final int COL_SIZE = 1;
     static final int ROW_SIZE = 60;                         //row and col size defined by the FPGA's fabric
     static final String SHAPES_REPORT_FILE_NAME = "shape.txt";
@@ -30,6 +30,7 @@ public class EntreeFloorplanner {
         return (yb - ya + 1) * (xb - xa + 1);
     }
     public static void main(String[] args) throws IOException {
+        //MANDATORY: number of trees multiple of number of RP
 
         int RECONFIGURABLE_REGIONS = Integer.parseInt(args[0]);
         int BANKS = Integer.parseInt(args[1]);
@@ -70,14 +71,15 @@ public class EntreeFloorplanner {
         int TREE_NUMBER = trees.size();
 
         //LOOP #1 to generate the pblocks
+        HashSet<String> alreadySeen = new HashSet<>();
         for (Tree t : trees) {
             String treeName = t.gettName();
             PBlockGenerator pbGen = new PBlockGenerator.Builder()
+                    .setGLOBAL_PBLOCK(globalPblocksFile.getAbsolutePath())
                     .setOVERHEAD_RATIO(OVERHEAD_RATIO)
-                    .setASPECT_RATIO((float) COL_SIZE / (float) ROW_SIZE)
+                    .setASPECT_RATIO((float) 20 * COL_SIZE / (float) ROW_SIZE)
                     .build();
 
-            HashSet<String> alreadySeen = new HashSet<>();
             int requested = pbGen.PBLOCK_COUNT;
             for(String s : pbGen.generatePBlockFromReport(t.getUtilReport(), tempFile.getAbsolutePath())){
 
@@ -90,11 +92,15 @@ public class EntreeFloorplanner {
                 if(requested == 0) break;
             }
         }
+        alreadySeen.clear();
+        PrintWriter pw = new PrintWriter(globalPblocksFile.getAbsolutePath());
+        pw.write("");
+        pw.close();
 
         //Sort Tree's list by number of slices
         trees.sort(Comparator.comparing(a -> a.sliceCount));
 
-        PrintWriter pw = new PrintWriter(constraintsFile.getAbsolutePath());
+        pw = new PrintWriter(constraintsFile.getAbsolutePath());
         //LOOP #2 to generate the final Pblocks, csv and xdc files
         int m = 0, n = 0;
         for (int i = TREE_NUMBER/RECONFIGURABLE_REGIONS - 1; i  < TREE_NUMBER; i += TREE_NUMBER/RECONFIGURABLE_REGIONS) { //loop over groups
@@ -106,12 +112,12 @@ public class EntreeFloorplanner {
             String treeUtilReport = t.getUtilReport();
 
             PBlockGenerator p = new PBlockGenerator.Builder()
+                    .setCOUNT_REQUEST(1)
                     .setGLOBAL_PBLOCK(globalPblocksFile.getAbsolutePath())
-                    .setASPECT_RATIO((float) COL_SIZE / (float) ROW_SIZE)
+                    .setASPECT_RATIO((float) 20 * COL_SIZE / (float) ROW_SIZE)
                     .setOVERHEAD_RATIO(OVERHEAD_RATIO)
                     .build();
-
-            HashSet<String> alreadySeen = new HashSet<>();
+            //HashSet<String> alreadySeen = new HashSet<>();
             int requested = p.PBLOCK_COUNT;
             for (String s : p.generatePBlockFromReport(treeUtilReport, tempFile.getAbsolutePath())) {
                 if (alreadySeen.contains(s)) continue;
@@ -120,13 +126,12 @@ public class EntreeFloorplanner {
                 String partition = "tree_rp_" + m + "_" + n;
                 n++;
 
-
                 reconfigurableRegions.put(partition, s);
 
                 pw.write(   "create_pblock " + "pblock_" + partition + "\n" +
                         "add_cells_to_pblock " + "pblock_" + partition + " [get_cells [list top_system_i/" + partition + "]]\n" +
                         "resize_pblock pblock_" + partition + " -add {" + reconfigurableRegions.get(partition) + "}\n" +
-                        "set_property SNAPPING_MODE OFF [get_pblocks " + "pblock_" + partition + "]\n");
+                        "set_property SNAPPING_MODE ON [get_pblocks " + "pblock_" + partition + "]\n");
 
                 requested--;
                 if(requested == 0) break;

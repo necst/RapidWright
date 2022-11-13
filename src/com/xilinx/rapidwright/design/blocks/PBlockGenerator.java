@@ -89,14 +89,14 @@ public class PBlockGenerator {
 	public static final PBlockGenEmitter emitter = new PBlockGenEmitter();
 
 	// Command line argument names
-	private static String UTILIZATION_REPORT_OPT = "u";
-	private static String SHAPES_REPORT_OPT      = "s";
-	private static String ASPECT_RATIO_OPT       = "a";
-	private static String OVERHEAD_RATIO_OPT     = "o";
+	private static final String UTILIZATION_REPORT_OPT = "u";
+	private static final String SHAPES_REPORT_OPT      = "s";
+	private static final String ASPECT_RATIO_OPT       = "a";
+	private static final String OVERHEAD_RATIO_OPT     = "o";
 	public static final String STARTING_X_OPT         = "x";
 	public static final String STARTING_Y_OPT         = "y";
 	public static final String COUNT_REQUEST_OPT      = "c";
-	public static final String GLOBAL_PBLOCK_OPT 	  = "p";  //  File containig already implemented pblocks for free resources computation
+	public static final String GLOBAL_PBLOCK_OPT 	  = "p";  //  File containing already implemented pblocks for free resources computation
 	public static final String IP_NR_INSTANCES_OPT    = "i";
 	Device dev = null;
 	int lutCount = 0;
@@ -895,6 +895,9 @@ public class PBlockGenerator {
 		int numDSPColumns = (int) Math.ceil(((float)dspsRequired * CLES_PER_DSP) / pblockCLEHeight);
 		numDSPColumns = (dspsRequired > 0 && numDSPColumns == 0) ? 1 : numDSPColumns;
 
+		//FIXME: COLUMNS = 2 minimum PU for RP
+		numSLICEColumns = 2;
+
 		// Let's trim back some of the height on SLICE pblocks if we can
 		if(dspCLECount == 0 && bramCLECount == 0){
 			int areaSLICEExcess = (numSLICEColumns * pblockCLEHeight) - slicesRequired;
@@ -949,8 +952,8 @@ public class PBlockGenerator {
 					" numSLICEMCols=" + numSLICEMColumns + " numDSPColumns="+numDSPColumns + " numBRAMColumns=" + numBRAMColumns);
 		}
 		//FIXME - This is a hack to exit "trivial mode", but it's not the best way to do this
-		//boolean trivial = matches.get(0).size() < 2;
-		boolean trivial = false;
+		boolean trivial = matches.get(0).size() < 2;
+		//boolean trivial = false;
 		ArrayList<String> pBlocks = new ArrayList<String>(PBLOCK_COUNT);
 
 		// Code inserted to obtain the pblock pattern having the highest number of free resources on the device
@@ -964,6 +967,7 @@ public class PBlockGenerator {
 			HashMap<Integer, Integer> yu = new HashMap<Integer, Integer>();
 			HashMap<Integer, Integer> nrInst = new HashMap<Integer, Integer>();
 			getAlreadyGenPBlocks(xl,xr,yd,yu,nrInst);
+
 			// Order the patterns according to the available resources
 			for(TileColumnPattern p : matches){
 				if(trivial) {
@@ -983,7 +987,7 @@ public class PBlockGenerator {
 				storeBestPattern.put(freeResources, p);
 			}
 			// Select the patterns with most available resources and only the amount requested by the user
-			int nrAddedPatterns = 1;
+			int nrAddedPatterns = -18;
 			for(double key : storeBestPattern.descendingKeySet()){ // descending order = start with the ones with most free resources
 				TileColumnPattern p = storeBestPattern.get(key);
 				Iterator<Integer> patternInstancesItr = patMap.get(p).iterator();
@@ -1341,8 +1345,17 @@ public class PBlockGenerator {
 
 				// Allign it to a tile
 				xr = getSitePBlock(row /* TODO - Make Data Driven*/, i,false).getInstanceX();
+
+				// If the two CLB column share the same interconnection (same coordinates XY) use this column (min PU) for RP
+				Site upperLeftNext = upperLeft.getNeighborSite(1,0); // |CLB| <interconnection> |Neighbour CLB|
+
+				String[] upperLeftStr = upperLeft.getTile().toString().split("[XY]");
+				String[] upperLeftNextStr = upperLeftNext.getTile().toString().split("[XY]");
+
+				boolean PU = upperLeftStr[1].equals(upperLeftNextStr[1]) && upperLeftStr[2].equals(upperLeftNextStr[2]);
+
 				// If this is the only pblock , simply add it. If not, the next elem shall be added with index 0, to avoid edge effects
-				if(dev.getSite(upperLeft.getName())!=null && dev.getSite("SLICE_X"+xr+"Y"+yd)!=null ) {
+				if(dev.getSite(upperLeft.getName())!=null && dev.getSite("SLICE_X"+xr+"Y"+yd)!=null && PU) { // if PU == true, columns are sharing interconnection. Mandatory for RP
 					if(runNr==0) {
 						if(!avoidEdge) {
 							clbPBlock.put(0, new Integer[] {xl,xr,yd,yu});
@@ -1424,14 +1437,11 @@ public class PBlockGenerator {
 
 		for (int i : xl.keySet()) { 						// Go through all the pblocks in the global pblock file
 			for(int myPatternCol : clbPBlock.keySet()) { 	// Go through all my  pblocks. clb_pblock value:  Integer[] {x_l,x_r,y_d,y_u}
-				overlap = false;
-				if(  ((clbPBlock.get(myPatternCol)[0]<=xl.get(i)) && (clbPBlock.get(myPatternCol)[1]>=xl.get(i))) ||
-						((clbPBlock.get(myPatternCol)[0]<=xr.get(i)) && (clbPBlock.get(myPatternCol)[1]>=xr.get(i))) ||
-						((clbPBlock.get(myPatternCol)[0]>=xl.get(i)) && (clbPBlock.get(myPatternCol)[1]<=xr.get(i)))  ) {
-					overlap = true;
-				}
+				overlap = ((clbPBlock.get(myPatternCol)[0] <= xl.get(i)) && (clbPBlock.get(myPatternCol)[1] >= xl.get(i))) ||
+						((clbPBlock.get(myPatternCol)[0] <= xr.get(i)) && (clbPBlock.get(myPatternCol)[1] >= xr.get(i))) ||
+						((clbPBlock.get(myPatternCol)[0] >= xl.get(i)) && (clbPBlock.get(myPatternCol)[1] <= xr.get(i)));
 				if(overlap) {
-					myFreeRows -=  (yu.get(i)-yd.get(i)+1)*instCount.get(i);
+					myFreeRows -=  (yu.get(i)-yd.get(i)+5)*instCount.get(i);
 					myFreeRows -= 5; 						// for each overlapp, add buffer between IPs
 				}
 			}
